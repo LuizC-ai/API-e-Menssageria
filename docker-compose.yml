@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "15672:15672"  # Porta de gerenciamento
+      - "5672:5672"    # Porta padrão do RabbitMQ
+    hostname: rabbitmq
+    # volumes:
+      #- rabbitmq_data:/var/lib/rabbitmq
+
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - default
+  api:
+    build:
+      context: ./API
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    networks:
+      - default
+
+
+  recarga:
+    build:
+      context: ./Recarga
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+
+volumes:
+  rabbitmq_data:
